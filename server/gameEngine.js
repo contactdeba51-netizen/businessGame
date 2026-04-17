@@ -58,13 +58,13 @@ const {
 //  SECTION 1 — CONSTANTS
 // ════════════════════════════════════════════════════════════
 
-const STARTING_BALANCE  = 100000; // ₹1,00,000 per player at game start
-const JAIL_FINE         = 500;    // Cost to escape jail on your turn
-const BONUS_AMOUNT      = 500;    // Reward from landing on Bonus square
-const FINE_AMOUNT       = 500;    // Penalty from landing on Fine square
-const BORROW_UNIT       = 10000;  // Minimum borrow increment from bank
+const STARTING_BALANCE = 100000; // ₹1,00,000 per player at game start
+const JAIL_FINE = 500;    // Cost to escape jail on your turn
+const BONUS_AMOUNT = 500;    // Reward from landing on Bonus square
+const FINE_AMOUNT = 500;    // Penalty from landing on Fine square
+const BORROW_UNIT = 10000;  // Minimum borrow increment from bank
 const MAX_UPGRADE_LEVEL = 3;      // Properties cap at Level 3
-const OVER_LIMIT_BONUS  = 1000;   // Bonus for landing on unowned property after limit
+const OVER_LIMIT_BONUS = 1000;   // Bonus for landing on unowned property after limit
 
 
 // ════════════════════════════════════════════════════════════
@@ -79,41 +79,41 @@ const OVER_LIMIT_BONUS  = 1000;   // Bonus for landing on unowned property after
  */
 const createInitialGameState = (roomCode, mode, players) => {
   const initialPlayers = players.map((p) => ({
-    id:               p.id,
-    username:         p.username,
-    balance:          STARTING_BALANCE,
-    ring:             "outer",
-    positionIndex:    0,
-    isJailed:         false,
+    id: p.id,
+    username: p.username,
+    balance: STARTING_BALANCE,
+    ring: "outer",
+    positionIndex: 0,
+    isJailed: false,
     jailTurnsRemaining: 0,
-    ownedProperties:  [],       // array of square IDs this player owns
-    heldCards:        [],       // array of card objects currently held
-    upgradeHistory:   {},       // { squareId: upgradeLevel } — tracks free upgrades
-    tokenStyle:       p.tokenStyle  || "car",
-    tokenColor:       p.tokenColor  || "red",
-    isBot:            p.isBot       || false,
-    isEliminated:     false,
+    ownedProperties: [],       // array of square IDs this player owns
+    heldCards: [],       // array of card objects currently held
+    upgradeHistory: {},       // { squareId: upgradeLevel } — tracks free upgrades
+    tokenStyle: p.tokenStyle || "car",
+    tokenColor: p.tokenColor || "red",
+    isBot: p.isBot || false,
+    isEliminated: false,
   }));
 
   return {
     roomCode,
     mode,
-    status:               "wheel_spin",
-    turnOrder:            [],
-    currentPlayerIndex:   0,
-    currentPhase:         "roll",
-    players:              initialPlayers,
-    properties:           {},     // { squareId: { ownerId, upgradeLevel } }
+    status: "wheel_spin",
+    turnOrder: [],
+    currentPlayerIndex: 0,
+    currentPhase: "roll",
+    players: initialPlayers,
+    properties: {},     // { squareId: { ownerId, upgradeLevel } }
     // The bank's physical card supply — depletes when cards are dealt
-    cardBank:             { ...CARD_BANK_SUPPLY },
-    lastDiceRoll:         null,
+    cardBank: { ...CARD_BANK_SUPPLY },
+    lastDiceRoll: null,
     // A pending blocker means a player declared a number before rolling
-    pendingBlocker:       null,
-    pendingPayment:       null,
-    lastEvent:            { type: "game_started", message: "Game started! Spinning the wheel..." },
-    winner:               null,
-    createdAt:            Date.now(),
-    updatedAt:            Date.now(),
+    pendingBlocker: null,
+    pendingPayment: null,
+    lastEvent: { type: "game_started", message: "Game started! Spinning the wheel..." },
+    winner: null,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
   };
 };
 
@@ -135,13 +135,13 @@ const setTurnOrder = (gameState) => {
   const firstName = getPlayerById({ players: gameState.players }, playerIds[0]).username;
   return {
     ...gameState,
-    turnOrder:          playerIds,
+    turnOrder: playerIds,
     currentPlayerIndex: 0,
-    status:             "active",
-    currentPhase:       "roll",
+    status: "active",
+    currentPhase: "roll",
     lastEvent: {
-      type:      "turn_order_set",
-      message:   `Turn order decided! ${firstName} goes first.`,
+      type: "turn_order_set",
+      message: `Turn order decided! ${firstName} goes first.`,
       turnOrder: playerIds,
     },
     updatedAt: Date.now(),
@@ -164,8 +164,8 @@ const rollDice = (gameState) => {
     return { ...gameState, lastEvent: { type: "error", message: "It is not the roll phase." } };
   }
 
-  const die1  = Math.floor(Math.random() * 6) + 1;
-  const die2  = Math.floor(Math.random() * 6) + 1;
+  const die1 = Math.floor(Math.random() * 6) + 1;
+  const die2 = Math.floor(Math.random() * 6) + 1;
   const total = die1 + die2;
 
   const currentPlayerId = getCurrentPlayerId(gameState);
@@ -177,7 +177,7 @@ const rollDice = (gameState) => {
   let blockerActivated = false;
   if (gameState.pendingBlocker && gameState.pendingBlocker.playerId === currentPlayerId) {
     const declaredNumber = gameState.pendingBlocker.declaredNumber;
-    blockerActivated     = (total === declaredNumber);
+    blockerActivated = (total === declaredNumber);
     // Consume the blocker card and clear the pending blocker
     stateAfterBlockerCheck = {
       ...gameState,
@@ -229,29 +229,29 @@ const rollDice = (gameState) => {
  * Portal check happens ONLY after the loop ends.
  */
 const movePlayer = (gameState, playerId, steps, blockerActivated = false) => {
-  const player     = getPlayerById(gameState, playerId);
-  const ring       = player.ring;
-  const ringArray  = ring === "outer" ? outerRing : innerRing;
+  const player = getPlayerById(gameState, playerId);
+  const ring = player.ring;
+  const ringArray = ring === "outer" ? outerRing : innerRing;
   const ringLength = ringArray.length;
 
   // Simple movement — count N steps forward on the current ring
   // Wraps around using modulo when passing the end of the ring
-  const finalIndex  = (player.positionIndex + steps) % ringLength;
+  const finalIndex = (player.positionIndex + steps) % ringLength;
   const landedSquare = ringArray[finalIndex];
 
-  let finalRing     = ring;
+  let finalRing = ring;
   let finalPosition = finalIndex;
-  let teleported    = false;
-  let teleportMsg   = "";
+  let teleported = false;
+  let teleportMsg = "";
 
   // Portal check — ONLY if the final landing square is a portal
   if (landedSquare.type === "portal") {
-    const destinationId  = getPortalDestination(landedSquare.id);
-    const destinationSq  = getSquareById(destinationId);
-    finalRing     = destinationId.startsWith("I-") ? "inner" : "outer";
+    const destinationId = getPortalDestination(landedSquare.id);
+    const destinationSq = getSquareById(destinationId);
+    finalRing = destinationId.startsWith("I-") ? "inner" : "outer";
     finalPosition = destinationSq.sequenceIndex;
-    teleported    = true;
-    teleportMsg   = `${player.username} landed on a portal and teleported to the ${finalRing} ring!`;
+    teleported = true;
+    teleportMsg = `${player.username} landed on a portal and teleported to the ${finalRing} ring!`;
   }
 
   // Update the player's position immutably
@@ -272,15 +272,15 @@ const movePlayer = (gameState, playerId, steps, blockerActivated = false) => {
     ...gameState,
     players: updatedPlayers,
     lastEvent: {
-      type:            "player_moved",
+      type: "player_moved",
       playerId,
-      newRing:         finalRing,
-      newIndex:        finalPosition,
-      landedOn:        resolvedSquare.name,
-      landedOnType:    resolvedSquare.type,
+      newRing: finalRing,
+      newIndex: finalPosition,
+      landedOn: resolvedSquare.name,
+      landedOnType: resolvedSquare.type,
       teleported,
       teleportMessage: teleportMsg,
-      diceRoll:        gameState.lastDiceRoll,
+      diceRoll: gameState.lastDiceRoll,
     },
     updatedAt: Date.now(),
   };
@@ -339,10 +339,10 @@ const resolveLanding = (gameState, playerId, square, blockerActivated = false) =
  *   4. Owned by another player          → pay rent (unless blocker active)
  */
 const resolvePropertyLanding = (gameState, playerId, square, blockerActivated) => {
-  const ownership  = gameState.properties[square.id];
-  const player     = getPlayerById(gameState, playerId);
-  const maxProps   = getMaxPropertiesPerPlayer(gameState.players.filter(p => !p.isEliminated).length);
-  const atLimit    = player.ownedProperties.length >= maxProps;
+  const ownership = gameState.properties[square.id];
+  const player = getPlayerById(gameState, playerId);
+  const maxProps = getMaxPropertiesPerPlayer(gameState.players.filter(p => !p.isEliminated).length);
+  const atLimit = player.ownedProperties.length >= maxProps;
 
   // ── Situation 1 & 2: Nobody owns this property ──────────
   if (!ownership) {
@@ -359,9 +359,9 @@ const resolvePropertyLanding = (gameState, playerId, square, blockerActivated) =
         ...gameState,
         players: updatedPlayers,
         lastEvent: {
-          type:    "over_limit_bonus",
+          type: "over_limit_bonus",
           playerId,
-          amount:  OVER_LIMIT_BONUS,
+          amount: OVER_LIMIT_BONUS,
           message: `${player.username} is at their property limit! Received ₹${OVER_LIMIT_BONUS} bonus from the bank.`,
         },
         updatedAt: Date.now(),
@@ -373,15 +373,15 @@ const resolvePropertyLanding = (gameState, playerId, square, blockerActivated) =
       ...gameState,
       currentPhase: "action",
       lastEvent: {
-        type:         "property_unowned",
+        type: "property_unowned",
         playerId,
-        squareId:     square.id,
+        squareId: square.id,
         propertyName: square.name,
-        buyPrice:     square.buyPrice,
-        baseRent:     square.baseRent,
-        canAfford:    player.balance >= square.buyPrice,
+        buyPrice: square.buyPrice,
+        baseRent: square.baseRent,
+        canAfford: player.balance >= square.buyPrice,
         atLimit,
-        message:      `${player.username} landed on ${square.name}. Buy for ₹${square.buyPrice}?`,
+        message: `${player.username} landed on ${square.name}. Buy for ₹${square.buyPrice}?`,
       },
       updatedAt: Date.now(),
     };
@@ -398,7 +398,7 @@ const resolvePropertyLanding = (gameState, playerId, square, blockerActivated) =
     return advanceTurn({
       ...gameState,
       lastEvent: {
-        type:    "rent_blocked",
+        type: "rent_blocked",
         playerId,
         squareId: square.id,
         message: `${player.username}'s Blocker card activated! Rent on ${square.name} is blocked this turn.`,
@@ -428,8 +428,8 @@ const resolveOwnPropertyLanding = (gameState, playerId, square, ownership) => {
   if (square.color === "pinkBrown") {
     const pair = findPinkBrownPair(square.id);
     if (!pair) return advanceTurn(gameState);
-    const paired  = isPinkBrownPairComplete(pair, player.ownedProperties);
-    const bonus   = paired ? pair.selfLandingBonus.paired : pair.selfLandingBonus.solo;
+    const paired = isPinkBrownPairComplete(pair, player.ownedProperties);
+    const bonus = paired ? pair.selfLandingBonus.paired : pair.selfLandingBonus.solo;
     const updatedPlayers = gameState.players.map(p =>
       p.id === playerId ? { ...p, balance: p.balance + bonus } : p
     );
@@ -437,10 +437,10 @@ const resolveOwnPropertyLanding = (gameState, playerId, square, ownership) => {
       ...gameState,
       players: updatedPlayers,
       lastEvent: {
-        type:    "self_landing_bonus",
+        type: "self_landing_bonus",
         playerId,
         squareId: square.id,
-        amount:  bonus,
+        amount: bonus,
         paired,
         message: `${player.username} landed on their own ${square.name}! Bank pays ₹${bonus} bonus${paired ? " (pair complete!)" : ""}.`,
       },
@@ -453,7 +453,7 @@ const resolveOwnPropertyLanding = (gameState, playerId, square, ownership) => {
     return advanceTurn({
       ...gameState,
       lastEvent: {
-        type:    "own_property_no_action",
+        type: "own_property_no_action",
         playerId,
         message: `${player.username} landed on their own ${square.name}. No upgrade for Pink properties.`,
       },
@@ -467,7 +467,7 @@ const resolveOwnPropertyLanding = (gameState, playerId, square, ownership) => {
     return advanceTurn({
       ...gameState,
       lastEvent: {
-        type:    "already_max_level",
+        type: "already_max_level",
         playerId,
         message: `${player.username} landed on ${square.name} (already at max Level 3).`,
       },
@@ -475,8 +475,8 @@ const resolveOwnPropertyLanding = (gameState, playerId, square, ownership) => {
     });
   }
 
-  const newLevel         = ownership.upgradeLevel + 1;
-  const rentAtNewLevel   = [null, square.rentL1, square.rentL2, square.rentL3][newLevel];
+  const newLevel = ownership.upgradeLevel + 1;
+  const rentAtNewLevel = [null, square.rentL1, square.rentL2, square.rentL3][newLevel];
   const updatedProperties = {
     ...gameState.properties,
     [square.id]: { ...ownership, upgradeLevel: newLevel },
@@ -486,13 +486,13 @@ const resolveOwnPropertyLanding = (gameState, playerId, square, ownership) => {
     ...gameState,
     properties: updatedProperties,
     lastEvent: {
-      type:        "free_upgrade",
+      type: "free_upgrade",
       playerId,
-      squareId:    square.id,
+      squareId: square.id,
       propertyName: square.name,
       newLevel,
-      newRent:     rentAtNewLevel,
-      message:     `${player.username} landed on their own ${square.name} — FREE upgrade to Level ${newLevel}! New rent: ₹${rentAtNewLevel}.`,
+      newRent: rentAtNewLevel,
+      message: `${player.username} landed on their own ${square.name} — FREE upgrade to Level ${newLevel}! New rent: ₹${rentAtNewLevel}.`,
     },
     updatedAt: Date.now(),
   });
@@ -519,7 +519,7 @@ const resolveOwnPropertyLanding = (gameState, playerId, square, ownership) => {
  */
 const calculateRent = (gameState, payerId, square, ownership) => {
   const diceTotal = gameState.lastDiceRoll[0] + gameState.lastDiceRoll[1];
-  const owner     = getPlayerById(gameState, ownership.ownerId);
+  const owner = getPlayerById(gameState, ownership.ownerId);
 
   // ── PinkBrown: always fixed flat rent ───────────────────
   if (square.color === "pinkBrown") {
@@ -586,8 +586,8 @@ const calculateRent = (gameState, payerId, square, ownership) => {
  */
 const initiateRentPayment = (gameState, payerId, square, ownership) => {
   const rentDue = calculateRent(gameState, payerId, square, ownership);
-  const payer   = getPlayerById(gameState, payerId);
-  const owner   = getPlayerById(gameState, ownership.ownerId);
+  const payer = getPlayerById(gameState, payerId);
+  const owner = getPlayerById(gameState, ownership.ownerId);
 
   // Check if payer has a 50% discount card for paying
   // The card will be used automatically if the payer chooses
@@ -601,22 +601,22 @@ const initiateRentPayment = (gameState, payerId, square, ownership) => {
       ...gameState,
       currentPhase: "action",
       pendingPayment: {
-        type:     "rent",
+        type: "rent",
         payerId,
-        ownerId:  ownership.ownerId,
-        amount:   rentDue,
+        ownerId: ownership.ownerId,
+        amount: rentDue,
         squareId: square.id,
       },
       lastEvent: {
-        type:           "insufficient_funds_rent",
+        type: "insufficient_funds_rent",
         payerId,
-        ownerId:        ownership.ownerId,
-        ownerName:      owner.username,
-        squareId:       square.id,
-        propertyName:   square.name,
+        ownerId: ownership.ownerId,
+        ownerName: owner.username,
+        squareId: square.id,
+        propertyName: square.name,
         rentDue,
         currentBalance: payer.balance,
-        message:        `${payer.username} owes ₹${rentDue} to ${owner.username} but only has ₹${payer.balance}. Must borrow from bank first.`,
+        message: `${payer.username} owes ₹${rentDue} to ${owner.username} but only has ₹${payer.balance}. Must borrow from bank first.`,
       },
       updatedAt: Date.now(),
     };
@@ -628,13 +628,13 @@ const initiateRentPayment = (gameState, payerId, square, ownership) => {
       ...gameState,
       currentPhase: "action",
       lastEvent: {
-        type:         "can_use_discount_pay",
+        type: "can_use_discount_pay",
         payerId,
-        ownerId:      ownership.ownerId,
-        squareId:     square.id,
+        ownerId: ownership.ownerId,
+        squareId: square.id,
         rentDue,
         discountedRent: Math.floor(rentDue / 2),
-        message:      `${payer.username} owes ₹${rentDue}. Use 50% Discount Card? (Would pay ₹${Math.floor(rentDue / 2)} instead)`,
+        message: `${payer.username} owes ₹${rentDue}. Use 50% Discount Card? (Would pay ₹${Math.floor(rentDue / 2)} instead)`,
       },
       updatedAt: Date.now(),
     };
@@ -664,15 +664,15 @@ const processRentPayment = (gameState, payerId, ownerId, amount, square) => {
     ...gameState,
     players: updatedPlayers,
     lastEvent: {
-      type:          'rent_paid',
-      payerId:       payerId,           // ✅ correct
+      type: 'rent_paid',
+      payerId: payerId,           // ✅ correct
       ownerUsername: owner.username,
-      propertyName:  square.name,
+      propertyName: square.name,
       propertyColor: square.color,
-      rentAmount:    amount,            // ✅ correct
-      usedBlocker:   false,
-      usedDiscount:  false,
-      message:       `${payer.username} paid ₹${amount} rent to ${owner.username}`,
+      rentAmount: amount,            // ✅ correct
+      usedBlocker: false,
+      usedDiscount: false,
+      message: `${payer.username} paid ₹${amount} rent to ${owner.username}`,
     },
     updatedAt: Date.now(),
   });
@@ -694,8 +694,8 @@ const buyProperty = (gameState, playerId, useDiscountCard = false) => {
     return { ...gameState, lastEvent: { type: "error", message: "Not in action phase." } };
   }
 
-  const player  = getPlayerById(gameState, playerId);
-  const square  = getSquareByIndex(player.ring, player.positionIndex);
+  const player = getPlayerById(gameState, playerId);
+  const square = getSquareByIndex(player.ring, player.positionIndex);
 
   let price = square.buyPrice;
 
@@ -712,7 +712,7 @@ const buyProperty = (gameState, playerId, useDiscountCard = false) => {
     gameState = {
       ...gameState,
       cardBank: { ...gameState.cardBank, discount_buy: gameState.cardBank.discount_buy + 1 },
-      players:  gameState.players.map(p =>
+      players: gameState.players.map(p =>
         p.id === playerId ? { ...p, heldCards: updatedCards } : p
       ),
     };
@@ -735,16 +735,16 @@ const buyProperty = (gameState, playerId, useDiscountCard = false) => {
 
   return advanceTurn({
     ...gameState,
-    players:    updatedPlayers,
+    players: updatedPlayers,
     properties: updatedProperties,
     lastEvent: {
-      type:          "property_bought",
+      type: "property_bought",
       playerId,
-      squareId:      square.id,
-      propertyName:  square.name,
+      squareId: square.id,
+      propertyName: square.name,
       price,
-      discountUsed:  useDiscountCard,
-      message:       `${player.username} bought ${square.name} for ₹${price}${useDiscountCard ? " (50% discount applied!)" : ""}!`,
+      discountUsed: useDiscountCard,
+      message: `${player.username} bought ${square.name} for ₹${price}${useDiscountCard ? " (50% discount applied!)" : ""}!`,
     },
     updatedAt: Date.now(),
   });
@@ -761,10 +761,10 @@ const skipBuying = (gameState, playerId) => {
   return advanceTurn({
     ...gameState,
     lastEvent: {
-      type:         "property_skipped",
+      type: "property_skipped",
       playerId,
       propertyName: square.name,
-      message:      `${player.username} chose not to buy ${square.name}.`,
+      message: `${player.username} chose not to buy ${square.name}.`,
     },
     updatedAt: Date.now(),
   });
@@ -784,11 +784,11 @@ const useDiscountPayCard = (gameState, playerId) => {
   }
 
   // Find the current square the player is on and the owner
-  const square    = getSquareByIndex(player.ring, player.positionIndex);
+  const square = getSquareByIndex(player.ring, player.positionIndex);
   const ownership = gameState.properties[square.id];
   if (!ownership) return gameState;
 
-  const fullRent     = calculateRent(gameState, playerId, square, ownership);
+  const fullRent = calculateRent(gameState, playerId, square, ownership);
   const discountRent = Math.floor(fullRent / 2);
 
   // Remove card from player hand and return to bank
@@ -798,7 +798,7 @@ const useDiscountPayCard = (gameState, playerId) => {
   const stateAfterCardUse = {
     ...gameState,
     cardBank: { ...gameState.cardBank, discount_pay: gameState.cardBank.discount_pay + 1 },
-    players:  gameState.players.map(p =>
+    players: gameState.players.map(p =>
       p.id === playerId ? { ...p, heldCards: updatedCards } : p
     ),
   };
@@ -806,6 +806,39 @@ const useDiscountPayCard = (gameState, playerId) => {
   return processRentPayment(stateAfterCardUse, playerId, ownership.ownerId, discountRent, square);
 };
 
+/**
+ * payRentFull
+ * Called when a player has the discount_pay card but chooses
+ * to pay full rent anyway (e.g. they want to save the card).
+ */
+const payRentFull = (gameState, playerId) => {
+  const player = getPlayerById(gameState, playerId);
+  const square = getSquareByIndex(player.ring, player.positionIndex);
+  const ownership = gameState.properties[square.id];
+  if (!ownership) return gameState;
+
+  const fullRent = calculateRent(gameState, playerId, square, ownership);
+
+  if (player.balance < fullRent) {
+    return {
+      ...gameState,
+      currentPhase: 'action',
+      pendingPayment: {
+        type: 'rent', payerId: playerId,
+        ownerId: ownership.ownerId, amount: fullRent, squareId: square.id,
+      },
+      lastEvent: {
+        type: 'insufficient_funds_rent', payerId: playerId,
+        ownerId: ownership.ownerId, squareId: square.id,
+        rentDue: fullRent, currentBalance: player.balance,
+        message: `${player.username} can't afford ₹${fullRent}. Must borrow first.`,
+      },
+      updatedAt: Date.now(),
+    };
+  }
+
+  return processRentPayment(gameState, playerId, ownership.ownerId, fullRent, square);
+};
 
 /**
  * declareBlocker
@@ -842,10 +875,10 @@ const declareBlocker = (gameState, playerId, declaredNumber) => {
       p.id === playerId ? { ...p, heldCards: updatedCards } : p
     ),
     lastEvent: {
-      type:            "blocker_declared",
+      type: "blocker_declared",
       playerId,
       declaredNumber,
-      message:         `${player.username} declared Blocker on dice total ${declaredNumber}! Now rolling...`,
+      message: `${player.username} declared Blocker on dice total ${declaredNumber}! Now rolling...`,
     },
     updatedAt: Date.now(),
   };
@@ -861,8 +894,8 @@ const declareBlocker = (gameState, playerId, declaredNumber) => {
  * of that colour, or if the target isn't eligible.
  */
 const useColorL1Card = (gameState, playerId, targetSquareId) => {
-  const player    = getPlayerById(gameState, playerId);
-  const square    = getSquareById(targetSquareId);
+  const player = getPlayerById(gameState, playerId);
+  const square = getSquareById(targetSquareId);
   const ownership = gameState.properties[targetSquareId];
 
   if (!ownership || ownership.ownerId !== playerId) {
@@ -876,7 +909,7 @@ const useColorL1Card = (gameState, playerId, targetSquareId) => {
   }
 
   // Find which colour card the player holds that matches this property
-  const cardId    = `${square.color}_l1`;
+  const cardId = `${square.color}_l1`;
   const cardIndex = player.heldCards.findIndex(c => c.cardId === cardId);
   if (cardIndex === -1) {
     return { ...gameState, lastEvent: { type: "error", message: `You do not hold a ${square.color} Level 1 card.` } };
@@ -888,8 +921,8 @@ const useColorL1Card = (gameState, playerId, targetSquareId) => {
 
   return {
     ...gameState,
-    cardBank:   { ...gameState.cardBank, [cardId]: gameState.cardBank[cardId] + 1 },
-    players:    gameState.players.map(p =>
+    cardBank: { ...gameState.cardBank, [cardId]: gameState.cardBank[cardId] + 1 },
+    players: gameState.players.map(p =>
       p.id === playerId ? { ...p, heldCards: updatedCards } : p
     ),
     properties: {
@@ -897,11 +930,11 @@ const useColorL1Card = (gameState, playerId, targetSquareId) => {
       [targetSquareId]: { ...ownership, upgradeLevel: 1 },
     },
     lastEvent: {
-      type:         "card_upgrade_l1",
+      type: "card_upgrade_l1",
       playerId,
-      squareId:     targetSquareId,
+      squareId: targetSquareId,
       propertyName: square.name,
-      message:      `${player.username} used ${square.color} Level 1 card to upgrade ${square.name} to Level 1! New rent: ₹${square.rentL1}.`,
+      message: `${player.username} used ${square.color} Level 1 card to upgrade ${square.name} to Level 1! New rent: ₹${square.rentL1}.`,
     },
     updatedAt: Date.now(),
   };
@@ -915,8 +948,8 @@ const useColorL1Card = (gameState, playerId, targetSquareId) => {
  * Does not apply to Pink or PinkBrown properties.
  */
 const useLevel2AnyCard = (gameState, playerId, targetSquareId) => {
-  const player    = getPlayerById(gameState, playerId);
-  const square    = getSquareById(targetSquareId);
+  const player = getPlayerById(gameState, playerId);
+  const square = getSquareById(targetSquareId);
   const ownership = gameState.properties[targetSquareId];
 
   if (!ownership || ownership.ownerId !== playerId) {
@@ -939,8 +972,8 @@ const useLevel2AnyCard = (gameState, playerId, targetSquareId) => {
 
   return {
     ...gameState,
-    cardBank:   { ...gameState.cardBank, level2_any: gameState.cardBank.level2_any + 1 },
-    players:    gameState.players.map(p =>
+    cardBank: { ...gameState.cardBank, level2_any: gameState.cardBank.level2_any + 1 },
+    players: gameState.players.map(p =>
       p.id === playerId ? { ...p, heldCards: updatedCards } : p
     ),
     properties: {
@@ -948,11 +981,11 @@ const useLevel2AnyCard = (gameState, playerId, targetSquareId) => {
       [targetSquareId]: { ...ownership, upgradeLevel: 2 },
     },
     lastEvent: {
-      type:         "card_upgrade_l2",
+      type: "card_upgrade_l2",
       playerId,
-      squareId:     targetSquareId,
+      squareId: targetSquareId,
       propertyName: square.name,
-      message:      `${player.username} used Level 2 Any card to upgrade ${square.name} to Level 2! New rent: ₹${square.rentL2}.`,
+      message: `${player.username} used Level 2 Any card to upgrade ${square.name} to Level 2! New rent: ₹${square.rentL2}.`,
     },
     updatedAt: Date.now(),
   };
@@ -979,7 +1012,7 @@ const resolveJailLanding = (gameState, playerId) => {
     ...gameState,
     players: updatedPlayers,
     lastEvent: {
-      type:    "sent_to_jail",
+      type: "sent_to_jail",
       playerId,
       message: `${player.username} landed on Jail! Next turn: pay ₹${JAIL_FINE} to play or skip the turn.`,
     },
@@ -1007,12 +1040,12 @@ const payJailFine = (gameState, playerId) => {
   );
   return {
     ...gameState,
-    players:      updatedPlayers,
+    players: updatedPlayers,
     currentPhase: "roll",
     lastEvent: {
-      type:    "jail_fine_paid",
+      type: "jail_fine_paid",
       playerId,
-      amount:  JAIL_FINE,
+      amount: JAIL_FINE,
       message: `${player.username} paid ₹${JAIL_FINE} and is free from jail! Roll the dice.`,
     },
     updatedAt: Date.now(),
@@ -1036,9 +1069,9 @@ const skipJailTurn = (gameState, playerId) => {
     ...gameState,
     players: updatedPlayers,
     lastEvent: {
-      type:    "jail_turn_skipped",
+      type: "jail_turn_skipped",
       playerId,
-      freed:   !newState.isJailed,
+      freed: !newState.isJailed,
       message: `${player.username}'s turn skipped (in jail).${!newState.isJailed ? " Now free!" : ""}`,
     },
     updatedAt: Date.now(),
@@ -1058,9 +1091,9 @@ const resolveBonusLanding = (gameState, playerId) => {
     ...gameState,
     players: updatedPlayers,
     lastEvent: {
-      type:    "bonus_collected",
+      type: "bonus_collected",
       playerId,
-      amount:  BONUS_AMOUNT,
+      amount: BONUS_AMOUNT,
       message: `${player.username} landed on Bonus! Received ₹${BONUS_AMOUNT} from the bank.`,
     },
     updatedAt: Date.now(),
@@ -1079,17 +1112,17 @@ const resolveFineLanding = (gameState, playerId) => {
       ...gameState,
       currentPhase: "action",
       pendingPayment: {
-        type:     "fine",
-        payerId:  playerId,
-        ownerId:  null,
-        amount:   FINE_AMOUNT,
+        type: "fine",
+        payerId: playerId,
+        ownerId: null,
+        amount: FINE_AMOUNT,
         squareId: null,
       },
       lastEvent: {
-        type:       "insufficient_funds_fine",
+        type: "insufficient_funds_fine",
         playerId,
         fineAmount: FINE_AMOUNT,
-        message:    `${player.username} landed on Fine but can't afford ₹${FINE_AMOUNT}. Must borrow first.`,
+        message: `${player.username} landed on Fine but can't afford ₹${FINE_AMOUNT}. Must borrow first.`,
       },
       updatedAt: Date.now(),
     };
@@ -1101,9 +1134,9 @@ const resolveFineLanding = (gameState, playerId) => {
     ...gameState,
     players: updatedPlayers,
     lastEvent: {
-      type:    "fine_paid",
+      type: "fine_paid",
       playerId,
-      amount:  FINE_AMOUNT,
+      amount: FINE_AMOUNT,
       message: `${player.username} landed on Fine! Paid ₹${FINE_AMOUNT} to the bank.`,
     },
     updatedAt: Date.now(),
@@ -1121,14 +1154,14 @@ const resolveFineLanding = (gameState, playerId) => {
  */
 const resolveChanceLanding = (gameState, playerId) => {
   const diceTotal = gameState.lastDiceRoll[0] + gameState.lastDiceRoll[1];
-  const card      = CHANCE_CARDS[diceTotal];
-  const player    = getPlayerById(gameState, playerId);
+  const card = CHANCE_CARDS[diceTotal];
+  const player = getPlayerById(gameState, playerId);
 
   const stateAfterCard = applyDiceCard(gameState, playerId, card);
   return advanceTurn({
     ...stateAfterCard,
     lastEvent: {
-      type:    "chance_card",
+      type: "chance_card",
       playerId,
       diceTotal,
       card,
@@ -1144,14 +1177,14 @@ const resolveChanceLanding = (gameState, playerId) => {
  */
 const resolveRepublicLanding = (gameState, playerId) => {
   const diceTotal = gameState.lastDiceRoll[0] + gameState.lastDiceRoll[1];
-  const card      = REPUBLIC_CARDS[diceTotal];
-  const player    = getPlayerById(gameState, playerId);
+  const card = REPUBLIC_CARDS[diceTotal];
+  const player = getPlayerById(gameState, playerId);
 
   const stateAfterCard = applyDiceCard(gameState, playerId, card);
   return advanceTurn({
     ...stateAfterCard,
     lastEvent: {
-      type:    "republic_card",
+      type: "republic_card",
       playerId,
       diceTotal,
       card,
@@ -1171,19 +1204,19 @@ const resolveRepublicLanding = (gameState, playerId) => {
  */
 const resolveUpgraderLanding = (gameState, playerId) => {
   const diceTotal = gameState.lastDiceRoll[0] + gameState.lastDiceRoll[1];
-  const card      = UPGRADER_CARDS[diceTotal];
-  const player    = getPlayerById(gameState, playerId);
-  const supply    = gameState.cardBank[card.cardId] || 0;
+  const card = UPGRADER_CARDS[diceTotal];
+  const player = getPlayerById(gameState, playerId);
+  const supply = gameState.cardBank[card.cardId] || 0;
 
   // No cards left in the bank for this type
   if (supply <= 0) {
     return advanceTurn({
       ...gameState,
       lastEvent: {
-        type:    "upgrader_no_supply",
+        type: "upgrader_no_supply",
         playerId,
         diceTotal,
-        cardId:  card.cardId,
+        cardId: card.cardId,
         message: `${player.username} rolled ${diceTotal} on Upgrader but the bank has no ${card.cardId} cards left!`,
       },
       updatedAt: Date.now(),
@@ -1200,11 +1233,11 @@ const resolveUpgraderLanding = (gameState, playerId) => {
     return advanceTurn({
       ...gameState,
       cardBank: newCardBank,
-      players:  gameState.players.map(p =>
+      players: gameState.players.map(p =>
         p.id === playerId ? { ...p, heldCards: [...p.heldCards, newCard] } : p
       ),
       lastEvent: {
-        type:    "upgrader_card_received",
+        type: "upgrader_card_received",
         playerId,
         diceTotal,
         card,
@@ -1220,11 +1253,11 @@ const resolveUpgraderLanding = (gameState, playerId) => {
     return advanceTurn({
       ...gameState,
       cardBank: newCardBank,
-      players:  gameState.players.map(p =>
+      players: gameState.players.map(p =>
         p.id === playerId ? { ...p, heldCards: [...p.heldCards, newCard] } : p
       ),
       lastEvent: {
-        type:    "upgrader_card_received",
+        type: "upgrader_card_received",
         playerId,
         diceTotal,
         card,
@@ -1307,31 +1340,31 @@ const getPairingStatus = (gameState, playerId) => {
 
   // Threshold groups
   ["yellow", "red", "orange", "black", "purple"].forEach(color => {
-    const group   = COLOR_GROUPS[color];
-    const owned   = player.ownedProperties.filter(id => group.propertyIds.includes(id));
+    const group = COLOR_GROUPS[color];
+    const owned = player.ownedProperties.filter(id => group.propertyIds.includes(id));
     status[color] = {
-      type:      "threshold",
-      owned:     owned.length,
+      type: "threshold",
+      owned: owned.length,
       threshold: group.threshold,
-      total:     group.totalProperties,
-      unlocked:  owned.length >= group.threshold,
+      total: group.totalProperties,
+      unlocked: owned.length >= group.threshold,
     };
   });
 
   // Pink pairs
   status.pink = COLOR_GROUPS.pink.pairs.map(pair => ({
-    pairId:    pair.pairId,
-    complete:  isPinkPairComplete(pair, player.ownedProperties),
-    owned:     pair.properties.filter(id => player.ownedProperties.includes(id)),
-    total:     pair.properties.length,
+    pairId: pair.pairId,
+    complete: isPinkPairComplete(pair, player.ownedProperties),
+    owned: pair.properties.filter(id => player.ownedProperties.includes(id)),
+    total: pair.properties.length,
   }));
 
   // PinkBrown pairs
   status.pinkBrown = COLOR_GROUPS.pinkBrown.pairs.map(pair => ({
-    pairId:    pair.pairId,
-    complete:  isPinkBrownPairComplete(pair, player.ownedProperties),
-    owned:     pair.properties.filter(id => player.ownedProperties.includes(id)),
-    total:     pair.properties.length,
+    pairId: pair.pairId,
+    complete: isPinkBrownPairComplete(pair, player.ownedProperties),
+    owned: pair.properties.filter(id => player.ownedProperties.includes(id)),
+    total: pair.properties.length,
   }));
 
   return status;
@@ -1353,7 +1386,7 @@ const borrowFromBank = (gameState, playerId, amount) => {
   if (amount % BORROW_UNIT !== 0 || amount <= 0) {
     return { ...gameState, lastEvent: { type: "error", message: `Borrow amount must be a multiple of ₹${BORROW_UNIT}.` } };
   }
-  const borrower      = getPlayerById(gameState, playerId);
+  const borrower = getPlayerById(gameState, playerId);
   const activePlayers = gameState.players.filter(p => !p.isEliminated);
 
   // ALL active players receive the amount — not just the borrower
@@ -1366,7 +1399,7 @@ const borrowFromBank = (gameState, playerId, amount) => {
     players: updatedPlayers,
     pendingPayment: null, // will be cleared after auto-processing below
     lastEvent: {
-      type:    "bank_borrow",
+      type: "bank_borrow",
       playerId,
       amount,
       message: `${borrower.username} borrowed ₹${amount} from the bank! All ${activePlayers.length} players received ₹${amount}.`,
@@ -1408,9 +1441,9 @@ const borrowFromBank = (gameState, playerId, amount) => {
           players: updatedForFine,
           pendingPayment: null,
           lastEvent: {
-            type:    "fine_paid",
+            type: "fine_paid",
             playerId,
-            amount:  pending.amount,
+            amount: pending.amount,
             message: `${borrower.username} borrowed ₹${amount} and paid ₹${pending.amount} fine to the bank.`,
           },
           updatedAt: Date.now(),
@@ -1453,16 +1486,16 @@ const advanceTurn = (gameState) => {
   }
 
   const nextPlayerId = gameState.turnOrder[nextIndex];
-  const nextPlayer   = getPlayerById(gameState, nextPlayerId);
+  const nextPlayer = getPlayerById(gameState, nextPlayerId);
 
   // If the next player is jailed, show them the jail decision screen
   if (nextPlayer.isJailed) {
     return {
       ...gameState,
       currentPlayerIndex: nextIndex,
-      currentPhase:       "jail_decision",
+      currentPhase: "jail_decision",
       lastEvent: {
-        type:    "jail_turn_start",
+        type: "jail_turn_start",
         playerId: nextPlayerId,
         message: `${nextPlayer.username} is in jail. Pay ₹${JAIL_FINE} to roll, or skip your turn.`,
       },
@@ -1473,7 +1506,7 @@ const advanceTurn = (gameState) => {
   return {
     ...gameState,
     currentPlayerIndex: nextIndex,
-    currentPhase:       "roll",
+    currentPhase: "roll",
     lastEvent: {
       ...gameState.lastEvent,
       nextPlayerId,
@@ -1518,11 +1551,11 @@ const eliminatePlayer = (gameState, playerId) => {
 
   const stateAfterElim = {
     ...gameState,
-    players:    updatedPlayers,
+    players: updatedPlayers,
     properties: updatedProperties,
-    cardBank:   newCardBank,
+    cardBank: newCardBank,
     lastEvent: {
-      type:    "player_eliminated",
+      type: "player_eliminated",
       playerId,
       message: `${player.username} has been eliminated! All their properties return to the bank.`,
     },
@@ -1540,12 +1573,12 @@ const eliminatePlayer = (gameState, playerId) => {
  */
 const playerLeft = (gameState, playerId) => {
   const player = getPlayerById(gameState, playerId);
-  const state  = eliminatePlayer(gameState, playerId);
+  const state = eliminatePlayer(gameState, playerId);
   return {
     ...state,
     lastEvent: {
       ...state.lastEvent,
-      type:    "player_left",
+      type: "player_left",
       message: `${player.username} left the game. Their properties and money return to the bank.`,
     },
   };
@@ -1562,18 +1595,18 @@ const checkWinCondition = (gameState) => {
     const winner = active[0];
     return {
       ...gameState,
-      status:       "finished",
+      status: "finished",
       currentPhase: "finished",
-      winner:       winner.id,
+      winner: winner.id,
       lastEvent: {
-        type:          "game_over",
-        winnerId:      winner.id,
-        winnerName:    winner.username,
+        type: "game_over",
+        winnerId: winner.id,
+        winnerName: winner.username,
         finalBalances: gameState.players.map(p => ({
-          id:          p.id,
-          username:    p.username,
-          balance:     p.balance,
-          isEliminated:p.isEliminated,
+          id: p.id,
+          username: p.username,
+          balance: p.balance,
+          isEliminated: p.isEliminated,
           propertiesOwned: p.ownedProperties.length,
         })),
         message: `🏆 ${winner.username} wins the game with ₹${winner.balance}!`,
@@ -1622,6 +1655,7 @@ module.exports = {
   buyProperty,
   skipBuying,
   useDiscountPayCard,
+  payRentFull,
   declareBlocker,
   useColorL1Card,
   useLevel2AnyCard,

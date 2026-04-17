@@ -296,6 +296,20 @@ module.exports = (io) => {
             newState = gameEngine.useDiscountPayCard(gs, actingPlayer.id);
             break;
 
+          // After the use_discount_pay case, ADD:
+          case 'pay_rent_full': {
+            // Player chose to pay full rent instead of using discount card
+            const sq = getSquareByIndex(gs.players.find(p => p.id === actingPlayer.id)?.ring,
+              gs.players.find(p => p.id === actingPlayer.id)?.positionIndex);
+            if (!sq) { socket.emit('error', { message: 'Square not found.' }); return; }
+            const ownership = gs.properties[sq.id];
+            if (!ownership) { socket.emit('error', { message: 'Property not owned.' }); return; }
+            const { processRentPayment, calculateRent, getPlayerById: gpb } = gameEngine;
+            // We need to call these — but they're not exported. See note below.
+            newState = gameEngine.payRentFull(gs, actingPlayer.id);
+            break;
+          }
+
           case 'declare_blocker':
             newState = gameEngine.declareBlocker(gs, actingPlayer.id, data.declaredNumber);
             break;
