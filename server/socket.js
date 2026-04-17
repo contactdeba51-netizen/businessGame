@@ -24,15 +24,15 @@ module.exports = (io) => {
       try {
         const roomCode = gameEngine.generateRoomCode();
         const hostPlayer = {
-          id:         socket.id,
+          id: socket.id,
           username,
           tokenStyle: tokenStyle || 'car',
           tokenColor: tokenColor || 'red',
-          isBot:      false,
+          isBot: false,
         };
         rooms[roomCode] = {
           mode,
-          status:  'waiting',
+          status: 'waiting',
           players: [hostPlayer],
           gameState: null,
         };
@@ -58,57 +58,56 @@ module.exports = (io) => {
           return;
         }
         if (room.status !== 'waiting') {
-  // If the game is active and this username is already a player,
-  // redirect them to rejoin instead of blocking them
-  const existingPlayer = room.gameState?.players?.find(p => p.username === username);
-  if (existingPlayer) {
-    // Treat as a rejoin
-    const oldSocketId = existingPlayer.id;
-    room.gameState.players = room.gameState.players.map(p =>
-      p.username === username ? { ...p, id: socket.id } : p
-    );
-    room.gameState.turnOrder = room.gameState.turnOrder.map(id =>
-      id === oldSocketId ? socket.id : id
-    );
-    delete socketPlayerMap[oldSocketId];
-    socketPlayerMap[socket.id] = { roomCode, username };
-    socket.join(roomCode);
-    socket.emit('state_updated', { gameState: room.gameState });
-    console.log(`🔄 ${username} silently rejoined active game in room ${roomCode}`);
-    return;
-  }
-  socket.emit('error', { message: 'Game already in progress.' });
-  return;
-}
+          // If the game is active and this username is already a player,
+          // redirect them to rejoin instead of blocking them
+          const existingPlayer = room.gameState?.players?.find(p => p.username === username);
+          if (existingPlayer) {
+            // Treat as a rejoin
+            const oldSocketId = existingPlayer.id;
+            room.gameState.players = room.gameState.players.map(p =>
+              p.username === username ? { ...p, id: socket.id } : p
+            );
+            room.gameState.turnOrder = room.gameState.turnOrder.map(id =>
+              id === oldSocketId ? socket.id : id
+            );
+            delete socketPlayerMap[oldSocketId];
+            socketPlayerMap[socket.id] = { roomCode, username };
+            socket.join(roomCode);
+            socket.emit('state_updated', { gameState: room.gameState });
+            console.log(`🔄 ${username} silently rejoined active game in room ${roomCode}`);
+            return;
+          }
+          socket.emit('error', { message: 'Game already in progress.' });
+          return;
+        }
         if (room.players.length >= 6) {
           socket.emit('error', { message: 'Room is full (max 6 players).' });
           return;
         }
         const existingLobbyPlayer = room.players.find(p => p.username === username);
-if (existingLobbyPlayer) {
-  // Player already in lobby but reconnected with a new socket ID
-  // Update their socket ID and re-emit player_joined so they get redirected
-  existingLobbyPlayer.id = socket.id;
-  delete socketPlayerMap[existingLobbyPlayer.id];
-  socketPlayerMap[socket.id] = { roomCode, username };
-  socket.join(roomCode);
-  socket.emit('player_joined',  { players: room.players });
-io.to(roomCode).emit('lobby_updated', { players: room.players });
-  console.log(`🔄 ${username} re-joined lobby ${roomCode} with new socket`);
-  return;
-}
+        if (existingLobbyPlayer) {
+          // Player already in lobby but reconnected with a new socket ID
+          existingLobbyPlayer.id = socket.id;
+          delete socketPlayerMap[existingLobbyPlayer.id];
+          socketPlayerMap[socket.id] = { roomCode, username };
+          socket.join(roomCode);
+          socket.emit('player_joined', { players: room.players });
+          io.to(roomCode).emit('lobby_updated', { players: room.players });
+          console.log(`🔄 ${username} re-joined lobby ${roomCode} with new socket`);
+          return;
+        }
         const newPlayer = {
-          id:         socket.id,
+          id: socket.id,
           username,
           tokenStyle: tokenStyle || 'car',
           tokenColor: tokenColor || 'blue',
-          isBot:      false,
+          isBot: false,
         };
         room.players.push(newPlayer);
         socketPlayerMap[socket.id] = { roomCode, username };
         socket.join(roomCode);
-        io.to(roomCode).emit('player_joined',  { players: room.players });
-io.to(roomCode).emit('lobby_updated',  { players: room.players });
+        io.to(roomCode).emit('player_joined', { players: room.players });
+        io.to(roomCode).emit('lobby_updated', { players: room.players });
         console.log(`👤 ${username} joined room ${roomCode}`);
       } catch (err) {
         console.error('join_room error:', err);
@@ -143,7 +142,7 @@ io.to(roomCode).emit('lobby_updated',  { players: room.players });
         gameState = gameEngine.setTurnOrder(gameState);
 
         room.gameState = gameState;
-        room.status    = 'active';
+        room.status = 'active';
 
         io.to(roomCode).emit('game_started', { gameState });
         console.log(`🎮 Game started in room ${roomCode}`);
@@ -175,15 +174,12 @@ io.to(roomCode).emit('lobby_updated',  { players: room.players });
         // Update socket ID mapping (their socket ID changed on reconnect)
         const oldSocketId = playerInGame.id;
         if (oldSocketId !== socket.id) {
-          // Update player ID in gameState
           room.gameState.players = room.gameState.players.map(p =>
             p.username === username ? { ...p, id: socket.id } : p
           );
-          // Update turnOrder if it contains the old socket ID
           room.gameState.turnOrder = room.gameState.turnOrder.map(id =>
             id === oldSocketId ? socket.id : id
           );
-          // Clean up old socket map entry
           delete socketPlayerMap[oldSocketId];
         }
 
@@ -218,12 +214,11 @@ io.to(roomCode).emit('lobby_updated',  { players: room.players });
           return;
         }
 
-        const newState    = gameEngine.rollDice(room.gameState);
-        room.gameState    = newState;
+        const newState = gameEngine.rollDice(room.gameState);
+        room.gameState = newState;
 
         io.to(roomCode).emit('state_updated', { gameState: newState });
 
-        // Check if game is over
         if (newState.status === 'finished') {
           io.to(roomCode).emit('game_over', { winnerId: newState.winner });
         }
@@ -245,21 +240,28 @@ io.to(roomCode).emit('lobby_updated',  { players: room.players });
           return;
         }
 
-        const gs             = room.gameState;
+        const gs = room.gameState;
         const currentPlayerId = gameEngine.getCurrentPlayerId(gs);
-        const actingPlayer   = gs.players.find(p => p.id === socket.id);
+        const actingPlayer = gs.players.find(p => p.id === socket.id);
 
         if (!actingPlayer) {
           socket.emit('error', { message: 'Player not found.' });
           return;
         }
 
-        // Most actions require it to be your turn
-        // (borrow_from_bank is allowed any time a pendingPayment exists for you)
+        // Actions that require it to be your turn.
+        // NOTE: borrow_from_bank and refuse_borrow are intentionally excluded —
+        // the engine validates the pendingPayment ownership internally.
         const turnRequiredActions = [
-          'buy_property', 'skip_buying', 'pay_jail_fine',
-          'skip_jail_turn', 'use_discount_pay', 'declare_blocker',
-          'use_color_l1_card', 'use_level2_any_card',
+          'buy_property',
+          'skip_buying',
+          'pay_jail_fine',
+          'skip_jail_turn',
+          'use_discount_pay',
+          'declare_blocker',
+          'use_color_l1_card',   // legacy direct action (kept for back-compat)
+          'use_level2_any_card', // legacy direct action (kept for back-compat)
+          'use_card',            // new unified card action
         ];
 
         if (turnRequiredActions.includes(action) && socket.id !== currentPlayerId) {
@@ -298,6 +300,7 @@ io.to(roomCode).emit('lobby_updated',  { players: room.players });
             newState = gameEngine.declareBlocker(gs, actingPlayer.id, data.declaredNumber);
             break;
 
+          // Legacy direct card actions (kept for back-compat)
           case 'use_color_l1_card':
             newState = gameEngine.useColorL1Card(gs, actingPlayer.id, data.targetSquareId);
             break;
@@ -306,10 +309,33 @@ io.to(roomCode).emit('lobby_updated',  { players: room.players });
             newState = gameEngine.useLevel2AnyCard(gs, actingPlayer.id, data.targetSquareId);
             break;
 
-          // ── Bank ──────────────────────────────────────
-          // Any player can borrow (not turn-restricted)
+          // ── NEW: Unified card action from EventCardModal ──
+          // Emitted as: { action: 'use_card', cardType: 'color_l1' | 'level2_any', targetSquareId }
+          case 'use_card': {
+            const { cardType, targetSquareId } = data;
+            if (cardType === 'color_l1') {
+              newState = gameEngine.useColorL1Card(gs, actingPlayer.id, targetSquareId);
+            } else if (cardType === 'level2_any') {
+              newState = gameEngine.useLevel2AnyCard(gs, actingPlayer.id, targetSquareId);
+            } else {
+              socket.emit('error', { message: `Unknown card type: ${cardType}` });
+              return;
+            }
+            break;
+          }
+
+          // ── Bank Borrowing ─────────────────────────────
+          // Not turn-restricted — any player who has a pendingPayment can borrow.
+          // The engine validates that the pendingPayment belongs to the acting player.
           case 'borrow_from_bank':
             newState = gameEngine.borrowFromBank(gs, actingPlayer.id, data.amount);
+            break;
+
+          // ── NEW: Refuse to borrow — player surrenders / gets eliminated ──
+          // Emitted as: { action: 'refuse_borrow' }
+          case 'refuse_borrow':
+            newState = gameEngine.eliminatePlayer(gs, actingPlayer.id);
+            console.log(`💀 ${actingPlayer.username} refused to borrow and was eliminated.`);
             break;
 
           default:
@@ -320,7 +346,7 @@ io.to(roomCode).emit('lobby_updated',  { players: room.players });
         room.gameState = newState;
         io.to(roomCode).emit('state_updated', { gameState: newState });
 
-        // Check if game is over after every action
+        // Check win condition after every action
         if (newState.status === 'finished') {
           io.to(roomCode).emit('game_over', { winnerId: newState.winner });
         }
@@ -332,19 +358,18 @@ io.to(roomCode).emit('lobby_updated',  { players: room.players });
     });
 
     // ─────────────────────────────────────────────────────
-// REJOIN LOBBY
-// Called by any player already in the room when Lobby
-// component mounts — ensures their socket is subscribed
-// to the room channel so broadcasts reach them
-// ─────────────────────────────────────────────────────
-socket.on('rejoin_lobby', ({ roomCode }) => {
-  const room = rooms[roomCode];
-  if (!room) return;
-  socket.join(roomCode);
-  // Send them the current player list immediately
-  socket.emit('lobby_updated', { players: room.players });
-  console.log(`🔁 Socket ${socket.id} rejoined lobby channel ${roomCode}`);
-});
+    // REJOIN LOBBY
+    // Called by any player already in the room when Lobby
+    // component mounts — ensures their socket is subscribed
+    // to the room channel so broadcasts reach them
+    // ─────────────────────────────────────────────────────
+    socket.on('rejoin_lobby', ({ roomCode }) => {
+      const room = rooms[roomCode];
+      if (!room) return;
+      socket.join(roomCode);
+      socket.emit('lobby_updated', { players: room.players });
+      console.log(`🔁 Socket ${socket.id} rejoined lobby channel ${roomCode}`);
+    });
 
     // ─────────────────────────────────────────────────────
     // DISCONNECT
@@ -355,9 +380,9 @@ socket.on('rejoin_lobby', ({ roomCode }) => {
 
       // Ignore transport-level reconnect attempts
       if (reason === 'transport close' || reason === 'ping timeout') {
-  console.log(`⏳ Temporary disconnect for ${socket.id} — waiting for rejoin`);
-  return;
-}
+        console.log(`⏳ Temporary disconnect for ${socket.id} — waiting for rejoin`);
+        return;
+      }
 
       const mapping = socketPlayerMap[socket.id];
       if (!mapping) return;
@@ -376,9 +401,8 @@ socket.on('rejoin_lobby', ({ roomCode }) => {
       room.gameState = newState;
 
       io.to(roomCode).emit('state_updated', { gameState: newState });
-      io.to(roomCode).emit('player_left',   { message: `${username} left the game.` });
+      io.to(roomCode).emit('player_left', { message: `${username} left the game.` });
 
-      // If game is over after someone leaves
       if (newState.status === 'finished') {
         io.to(roomCode).emit('game_over', { winnerId: newState.winner });
       }
