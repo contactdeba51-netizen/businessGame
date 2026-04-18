@@ -684,6 +684,176 @@ const EC = {
   btn: { width: '100%', borderRadius: 10, padding: '11px', fontWeight: 700, fontSize: 13, cursor: 'pointer', marginTop: 4 },
 };
 
+// ── HeldCardButton ────────────────────────────────────────────
+// Renders one button per held card. Handles click logic for:
+//   blocker       → opens BlockerModal (needs a number input)
+//   color_l1      → opens PropertyPicker filtered to that color
+//   level2_any    → opens PropertyPicker filtered to Level 1 props
+const HeldCardButton = ({ card, gameState, isMyTurn, currentPhase, emit }) => {
+  const CARD_LABELS = {
+    discount_pay: { icon: '🎟️', label: 'Discount Pay', hint: 'Use when owing rent' },
+    discount_buy: { icon: '🏷️', label: 'Discount Buy', hint: 'Use when buying' },
+    blocker: { icon: '🛡️', label: 'Blocker Card', hint: 'Declare before rolling' },
+    level2_any: { icon: '⬆️', label: 'Level 2 Upgrade', hint: 'Pick a Level 1 property' },
+  };
+  const meta = CARD_LABELS[card.cardId] || {
+    icon: '🎨', label: `${card.color?.toUpperCase()} L1`, hint: `Upgrade a base ${card.color} property`,
+  };
+
+  // Blocker can only be used in roll phase, on your turn
+  const canUseBlocker = card.cardId === 'blocker' && isMyTurn && currentPhase === 'roll';
+  // Level2/ColorL1 can be used any time it's your turn (action or roll)
+  const canUseUpgrader = (card.cardId === 'level2_any' || card.effectType === 'color_l1') && isMyTurn;
+  const isUsable = canUseBlocker || canUseUpgrader;
+
+  return (
+    <div style={{
+      background: isUsable ? 'rgba(168,85,247,0.12)' : 'rgba(255,255,255,0.04)',
+      border: `1px solid ${isUsable ? 'rgba(168,85,247,0.4)' : 'rgba(255,255,255,0.1)'}`,
+      borderRadius: 8, padding: '7px 10px', marginBottom: 5,
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+    }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ color: '#fff', fontWeight: 700, fontSize: 11 }}>{meta.icon} {meta.label}</div>
+        <div style={{ color: '#8fb8d8', fontSize: 9, marginTop: 2 }}>{meta.hint}</div>
+      </div>
+      {isUsable && (
+        <button
+          onClick={() => {
+            if (card.cardId === 'blocker') window.__openBlockerModal?.(card);
+            else if (card.cardId === 'level2_any') window.__openPropertyPicker?.('level2_any', null);
+            else if (card.effectType === 'color_l1') window.__openPropertyPicker?.('color_l1', card.color);
+          }}
+          style={{ background: '#7c3aed', color: '#fff', border: 'none', borderRadius: 7, padding: '6px 10px', fontWeight: 700, fontSize: 11, cursor: 'pointer', flexShrink: 0 }}
+        >
+          Use
+        </button>
+      )}
+    </div>
+  );
+};
+
+// ── BlockerModal ──────────────────────────────────────────────
+const BlockerModal = ({ onDeclare, onClose }) => {
+  const [picked, setPicked] = useState(7);
+  const totals = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+  return (
+    <div style={PP.overlay}>
+      <div style={{ background: '#0f2035', border: '1px solid rgba(124,58,237,0.5)', borderRadius: 16, width: 320, maxWidth: '95vw', overflow: 'hidden', boxShadow: '0 24px 64px rgba(0,0,0,0.7)' }}>
+        <div style={{ padding: '20px', background: 'rgba(124,58,237,0.1)', borderBottom: '1px solid rgba(124,58,237,0.25)', textAlign: 'center' }}>
+          <div style={{ fontSize: 32, marginBottom: 6 }}>🛡️</div>
+          <div style={{ color: '#c4b5fd', fontWeight: 800, fontSize: 17 }}>Blocker Card</div>
+          <div style={{ color: '#8fb8d8', fontSize: 11, marginTop: 6, lineHeight: 1.5 }}>
+            Pick a dice total. If your roll matches,<br />rent is completely waived this turn.
+          </div>
+        </div>
+        <div style={{ padding: '16px 20px 20px' }}>
+          <div style={{ color: '#d4a017', fontSize: 9, fontWeight: 700, letterSpacing: 1.5, marginBottom: 10 }}>CHOOSE A NUMBER (2–12)</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'center', marginBottom: 16 }}>
+            {totals.map(n => (
+              <button key={n} onClick={() => setPicked(n)} style={{
+                width: 38, height: 38, borderRadius: 8, fontWeight: 800, fontSize: 14, cursor: 'pointer', border: '2px solid',
+                background: picked === n ? 'rgba(124,58,237,0.4)' : 'rgba(255,255,255,0.06)',
+                borderColor: picked === n ? '#7c3aed' : 'rgba(255,255,255,0.12)',
+                color: picked === n ? '#c4b5fd' : '#fff',
+              }}>{n}</button>
+            ))}
+          </div>
+          <div style={{ background: 'rgba(124,58,237,0.08)', border: '1px solid rgba(124,58,237,0.25)', borderRadius: 8, padding: '8px 12px', marginBottom: 14, textAlign: 'center' }}>
+            <span style={{ color: '#8fb8d8', fontSize: 11 }}>Declaring: </span>
+            <span style={{ color: '#c4b5fd', fontWeight: 800, fontSize: 15 }}>🎲 {picked}</span>
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={() => onDeclare(picked)} style={{ flex: 2, background: '#5b21b6', color: '#fff', border: 'none', borderRadius: 10, padding: '11px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+              🛡️ Declare & Roll
+            </button>
+            <button onClick={onClose} style={{ flex: 1, background: 'rgba(255,255,255,0.08)', color: '#fff', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 10, padding: '11px', fontWeight: 600, fontSize: 12, cursor: 'pointer' }}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── PropertyPickerModal ───────────────────────────────────────
+// Used for both color_l1 and level2_any cards.
+// mode = 'color_l1'  → shows player's base-level (L0) props of that color
+// mode = 'level2_any' → shows player's L1 props of any upgradeable color
+const PropertyPickerModal = ({ mode, color, gameState, myUsername, emit, onClose }) => {
+  const me = gameState?.players?.find(p => p.username === myUsername);
+  const allSquares = [
+    ...outerRing.map(sq => ({ ...sq, ring: 'outer' })),
+    ...innerRing.map(sq => ({ ...sq, ring: 'inner' })),
+  ];
+
+  const eligible = allSquares.filter(sq => {
+    if (sq.type !== 'property') return false;
+    if (sq.color === 'pink' || sq.color === 'pinkBrown') return false;
+    const ownership = gameState.properties?.[sq.id];
+    if (!ownership || ownership.ownerId !== me?.id) return false;
+    if (mode === 'color_l1') return sq.color === color && ownership.upgradeLevel === 0;
+    if (mode === 'level2_any') return ownership.upgradeLevel === 1;
+    return false;
+  });
+
+  const title = mode === 'color_l1'
+    ? `🎨 Pick a base-level ${color?.toUpperCase()} property to upgrade to L1`
+    : '⬆️ Pick a Level 1 property to upgrade to Level 2';
+
+  return (
+    <div style={PP.overlay}>
+      <div style={{ background: '#0f2035', border: '1px solid rgba(168,85,247,0.4)', borderRadius: 16, width: 340, maxWidth: '95vw', overflow: 'hidden', boxShadow: '0 24px 64px rgba(0,0,0,0.7)' }}>
+        <div style={{ padding: '16px 20px', background: 'rgba(168,85,247,0.08)', borderBottom: '1px solid rgba(168,85,247,0.2)' }}>
+          <div style={{ color: '#d8b4fe', fontWeight: 800, fontSize: 14, lineHeight: 1.4 }}>{title}</div>
+        </div>
+        <div style={{ padding: '14px 20px 20px', maxHeight: '60vh', overflowY: 'auto' }}>
+          {eligible.length === 0 ? (
+            <div style={{ color: '#6b7280', fontSize: 12, textAlign: 'center', padding: '20px 0' }}>
+              {mode === 'color_l1'
+                ? `You have no base-level ${color} properties to upgrade.`
+                : 'You have no Level 1 properties to upgrade.'}
+            </div>
+          ) : (
+            eligible.map(sq => {
+              const lvl = gameState.properties?.[sq.id]?.upgradeLevel ?? 0;
+              const colorHex = COLOR_MAP[sq.color] || '#888';
+              return (
+                <div key={sq.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 9, padding: '10px 12px', marginBottom: 7, gap: 10 }}>
+                  <div>
+                    <div style={{ color: '#fff', fontWeight: 700, fontSize: 12 }}>{sq.name}</div>
+                    <div style={{ color: colorHex, fontSize: 10, marginTop: 2 }}>
+                      {sq.color?.toUpperCase()} · Currently Level {lvl}
+                    </div>
+                    <div style={{ color: '#8fb8d8', fontSize: 10, marginTop: 1 }}>
+                      New rent: ₹{mode === 'color_l1' ? sq.rentL1?.toLocaleString() : sq.rentL2?.toLocaleString()}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      if (mode === 'color_l1') emit('use_color_l1_card', { targetSquareId: sq.id });
+                      if (mode === 'level2_any') emit('use_level2_any_card', { targetSquareId: sq.id });
+                      onClose();
+                    }}
+                    style={{ background: '#5b21b6', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 14px', fontWeight: 700, fontSize: 12, cursor: 'pointer', flexShrink: 0 }}
+                  >
+                    Upgrade
+                  </button>
+                </div>
+              );
+            })
+          )}
+        </div>
+        <div style={{ padding: '0 20px 16px' }}>
+          <button onClick={onClose} style={{ width: '100%', background: 'rgba(255,255,255,0.07)', color: '#fff', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 10, padding: '10px', fontWeight: 600, fontSize: 12, cursor: 'pointer' }}>
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 // ════════════════════════════════════════════════════════════
 // ── BorrowModal ───────────────────────────────────────────────
@@ -901,6 +1071,9 @@ const Game = () => {
   const [currentSquare, setCurrentSquare] = useState(null);
   const [rentInfo, setRentInfo] = useState(null);
   const [cardEvent, setCardEvent] = useState(null);
+  const [blockerModalOpen, setBlockerModalOpen] = useState(false);
+  const [propPickerMode, setPropPickerMode] = useState(null);   // 'color_l1' | 'level2_any' | null
+  const [propPickerColor, setPropPickerColor] = useState(null);
   const [discountPayEvent, setDiscountPayEvent] = useState(null);
   // ── NEW: borrow context — set when server signals insufficient funds ──
   const [borrowContext, setBorrowContext] = useState(null);
@@ -914,6 +1087,20 @@ const Game = () => {
     rejoinedRef.current = true;
     socket.emit('rejoin_game', { roomCode: savedRoom, username: myUsername });
   }, [savedRoom, myUsername]);
+
+  // Wire up window bridges so HeldCardButton can open modals
+  // (avoids prop-drilling through the card list)
+  useEffect(() => {
+    window.__openBlockerModal = () => setBlockerModalOpen(true);
+    window.__openPropertyPicker = (mode, color) => {
+      setPropPickerMode(mode);
+      setPropPickerColor(color);
+    };
+    return () => {
+      delete window.__openBlockerModal;
+      delete window.__openPropertyPicker;
+    };
+  }, []);
 
   useEffect(() => {
     if (socket.connected) {
@@ -1173,6 +1360,29 @@ const Game = () => {
         />
       )}
 
+      {/* ── Blocker Modal ── */}
+      {blockerModalOpen && isMyTurn && currentPhase === 'roll' && (
+        <BlockerModal
+          onDeclare={(num) => {
+            emit('declare_blocker', { declaredNumber: num });
+            setBlockerModalOpen(false);
+          }}
+          onClose={() => setBlockerModalOpen(false)}
+        />
+      )}
+
+      {/* ── Property Picker (Color L1 / Level 2 Any) ── */}
+      {propPickerMode && (
+        <PropertyPickerModal
+          mode={propPickerMode}
+          color={propPickerColor}
+          gameState={gameState}
+          myUsername={myUsername}
+          emit={emit}
+          onClose={() => { setPropPickerMode(null); setPropPickerColor(null); }}
+        />
+      )}
+
       {/* ── Event Card Modal ── */}
       {!borrowContext && cardEvent && (
         <EventCardModal
@@ -1379,6 +1589,15 @@ const Game = () => {
                 ⚠ Waiting for borrow decision…
               </div>
             )}
+          </div>
+        )}
+
+        {(me?.heldCards?.length > 0) && (
+          <div style={{ marginTop: 8 }}>
+            <div style={S.sectionLabel}>🃏 YOUR CARDS</div>
+            {me.heldCards.map((card, i) => (
+              <HeldCardButton key={i} card={card} gameState={gameState} isMyTurn={isMyTurn} currentPhase={currentPhase} emit={emit} />
+            ))}
           </div>
         )}
 
